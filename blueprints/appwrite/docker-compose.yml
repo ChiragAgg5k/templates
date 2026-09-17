@@ -9,7 +9,7 @@ x-logging: &x-logging
 
 services:
   appwrite:
-    image: appwrite/appwrite:2.0.0
+    image: appwrite/appwrite:2.2.0
     <<: *x-logging
     restart: unless-stopped
     labels:
@@ -53,11 +53,12 @@ services:
         condition: service_healthy
       appwrite-geo:
         condition: service_started
+      appwrite-autogravity:
+        condition: service_started
     environment:
       - _APP_ENV
       - _APP_EDITION
       - _APP_WORKER_PER_CORE
-      - _APP_POOL_ADAPTER
       - _APP_LOCALE
       - _APP_COMPRESSION_ENABLED
       - _APP_COMPRESSION_MIN_SIZE_BYTES
@@ -137,7 +138,6 @@ services:
       - _APP_USAGE_PASS
       - _APP_CONNECTIONS_DB_USAGE
       - _APP_POOL_SIZE_USAGE
-      - _APP_EXECUTIONS_DUAL_WRITE
       - _APP_CONNECTIONS_DB_EXECUTIONS
       - _APP_POOL_SIZE_EXECUTIONS
       - _APP_MAINTENANCE_RETENTION_USAGE_TTL
@@ -153,6 +153,7 @@ services:
       - _APP_SMS_FROM
       - _APP_STORAGE_LIMIT
       - _APP_STORAGE_PREVIEW_LIMIT
+      - _APP_AUTOGRAVITY_HOST
       - _APP_STORAGE_ANTIVIRUS
       - _APP_STORAGE_ANTIVIRUS_HOST
       - _APP_STORAGE_ANTIVIRUS_PORT
@@ -179,6 +180,7 @@ services:
       - _APP_STORAGE_WASABI_REGION
       - _APP_STORAGE_WASABI_BUCKET
       - _APP_COMPUTE_SIZE_LIMIT
+      - _APP_COMPUTE_BUILD_SIZE_LIMIT
       - _APP_COMPUTE_BUILD_TIMEOUT
       - _APP_COMPUTE_CPUS
       - _APP_COMPUTE_MEMORY
@@ -197,15 +199,12 @@ services:
       - _APP_GEO_ENDPOINT
       - _APP_LOGGING_CONFIG
       - _APP_LOGGING_FORMAT
-      - _APP_EXPERIMENT_LOGGING_PROVIDER
-      - _APP_EXPERIMENT_LOGGING_CONFIG
       - _APP_MAINTENANCE_INTERVAL
       - _APP_MAINTENANCE_RETENTION_EXECUTION
       - _APP_MAINTENANCE_RETENTION_CACHE
       - _APP_MAINTENANCE_RETENTION_ABUSE
       - _APP_MAINTENANCE_RETENTION_AUDIT
       - _APP_MAINTENANCE_RETENTION_AUDIT_CONSOLE
-      - _APP_MAINTENANCE_RETENTION_USAGE_HOURLY
       - _APP_MAINTENANCE_RETENTION_SCHEDULES
       - _APP_GRAPHQL_INTROSPECTION
       - _APP_GRAPHQL_MAX_BATCH_SIZE
@@ -239,7 +238,7 @@ services:
       - _APP_CONSOLE_COUNTRIES_DENYLIST
 
   appwrite-console:
-    image: appwrite/new:1.1.16
+    image: appwrite/new:1.1.96-self-hosted
     <<: *x-logging
     restart: unless-stopped
     environment:
@@ -248,7 +247,7 @@ services:
       - VITE_GROWTH_ENDPOINT=https://growth.appwrite.io/v1
 
   appwrite-realtime:
-    image: appwrite/appwrite:2.0.0
+    image: appwrite/appwrite:2.2.0
     entrypoint: realtime
     <<: *x-logging
     restart: unless-stopped
@@ -298,11 +297,9 @@ services:
       - _APP_STATS_USAGE_QUEUE_NAME
       - _APP_LOGGING_CONFIG
       - _APP_LOGGING_FORMAT
-      - _APP_LOGGING_CONFIG_REALTIME
-      - _APP_POOL_ADAPTER=swoole
 
   appwrite-worker:
-    image: appwrite/appwrite:2.0.0
+    image: appwrite/appwrite:2.2.0
     entrypoint: worker
     <<: *x-logging
     restart: unless-stopped
@@ -328,7 +325,6 @@ services:
       # Pool sizing only (sum of per-queue caps). Each queue keeps its own maxCoroutines in PHP; databases stays at 1.
       - _APP_WORKER_MAX_COROUTINES=78
       - _APP_WORKER_PER_CORE
-      - _APP_POOL_ADAPTER
       - _APP_OPENSSL_KEY_V1
       - _APP_NOTIFICATIONS_TRACKING_SECRET
       - _APP_EMAIL_SECURITY
@@ -366,7 +362,6 @@ services:
       - _APP_USAGE_PASS
       - _APP_CONNECTIONS_DB_USAGE
       - _APP_POOL_SIZE_USAGE
-      - _APP_EXECUTIONS_DUAL_WRITE
       - _APP_CONNECTIONS_DB_EXECUTIONS
       - _APP_POOL_SIZE_EXECUTIONS
       - _APP_MAINTENANCE_RETENTION_USAGE_TTL
@@ -375,7 +370,6 @@ services:
       - _APP_STATS_RESOURCES_INTERVAL
       - _APP_LOGGING_CONFIG
       - _APP_LOGGING_FORMAT
-      - _APP_LOGGING_PROVIDER
       - _APP_QUEUE_NAME
       - _APP_CONSOLE_URL_SCHEME=root
       - _APP_CONSOLE_DOMAIN
@@ -429,6 +423,7 @@ services:
       - _APP_COMPUTE_CPUS
       - _APP_COMPUTE_MEMORY
       - _APP_COMPUTE_SIZE_LIMIT
+      - _APP_COMPUTE_BUILD_SIZE_LIMIT
       - _APP_OPEN_RUNTIMES_NFT
       - _APP_VCS_GITHUB_APP_NAME
       - _APP_VCS_GITHUB_PRIVATE_KEY
@@ -465,7 +460,7 @@ services:
       - _APP_MAINTENANCE_RETENTION_AUDIT_CONSOLE
 
   appwrite-task-scheduler:
-    image: appwrite/appwrite:2.0.0
+    image: appwrite/appwrite:2.2.0
     entrypoint: schedule
     <<: *x-logging
     restart: unless-stopped
@@ -480,7 +475,6 @@ services:
       # against shared console/cache pools; floor must cover concurrent ticks.
       - _APP_WORKER_MAX_COROUTINES=8
       - _APP_WORKER_PER_CORE
-      - _APP_POOL_ADAPTER
       - _APP_OPENSSL_KEY_V1
       - _APP_OPTIONS_FORCE_HTTPS
       - _APP_DOMAIN
@@ -504,7 +498,6 @@ services:
       - _APP_USAGE_PASS
       - _APP_CONNECTIONS_DB_USAGE
       - _APP_POOL_SIZE_USAGE
-      - _APP_EXECUTIONS_DUAL_WRITE
       - _APP_CONNECTIONS_DB_EXECUTIONS
       - _APP_POOL_SIZE_EXECUTIONS
       - _APP_MAINTENANCE_RETENTION_USAGE_TTL
@@ -515,7 +508,7 @@ services:
       - _APP_LOGGING_FORMAT
 
   appwrite-task-maintenance:
-    image: appwrite/appwrite:2.0.0
+    image: appwrite/appwrite:2.2.0
     entrypoint: maintenance
     <<: *x-logging
     restart: unless-stopped
@@ -528,7 +521,6 @@ services:
       - _APP_ENV
       - _APP_EDITION
       - _APP_WORKER_PER_CORE
-      - _APP_POOL_ADAPTER
       - _APP_DOMAIN
       - _APP_DOMAIN_TARGET_CNAME
       - _APP_DOMAIN_TARGET_AAAA
@@ -556,12 +548,11 @@ services:
       - _APP_MAINTENANCE_RETENTION_ABUSE
       - _APP_MAINTENANCE_RETENTION_AUDIT
       - _APP_MAINTENANCE_RETENTION_AUDIT_CONSOLE
-      - _APP_MAINTENANCE_RETENTION_USAGE_HOURLY
       - _APP_MAINTENANCE_RETENTION_SCHEDULES
       - _APP_LOGGING_FORMAT
 
   appwrite-task-interval:
-    image: appwrite/appwrite:2.0.0
+    image: appwrite/appwrite:2.2.0
     entrypoint: interval
     <<: *x-logging
     restart: unless-stopped
@@ -573,7 +564,6 @@ services:
     environment:
       - _APP_ENV
       - _APP_WORKER_PER_CORE
-      - _APP_POOL_ADAPTER
       - _APP_DOMAIN
       - _APP_DOMAIN_TARGET_CNAME
       - _APP_DOMAIN_TARGET_AAAA
@@ -600,6 +590,11 @@ services:
 
   appwrite-browser:
     image: appwrite/browser:0.3.4
+    <<: *x-logging
+    restart: unless-stopped
+
+  appwrite-autogravity:
+    image: ghcr.io/appwrite/autogravity:0.0.10
     <<: *x-logging
     restart: unless-stopped
 
@@ -681,7 +676,7 @@ services:
       start_period: 5s
 
   orchestrator:
-    image: ghcr.io/open-runtimes/orchestrator/orchestrator:1.9.2
+    image: ghcr.io/open-runtimes/orchestrator/orchestrator:2.2.0
     hostname: orchestrator
     <<: *x-logging
     restart: unless-stopped
