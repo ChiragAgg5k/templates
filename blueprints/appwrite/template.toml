@@ -11,6 +11,9 @@ jobs_secret = "${password:32}"
 geo_secret = "${password:32}"
 
 [config]
+# Build jobs and runtimes join <appName>_default, which isolated deployments never create
+# (every service sits on the external <appName> network instead).
+isolated = false
 env = [
   "_APP_ENV=production",
   "_APP_EDITION=self-hosted",
