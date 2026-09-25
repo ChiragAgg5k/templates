@@ -8,7 +8,7 @@ x-logging: &x-logging
       max-size: "10m"
 services:
   appwrite:
-    image: appwrite/appwrite:2.2.0
+    image: appwrite/appwrite:2.3.0
     <<: *x-logging
     restart: unless-stopped
     labels:
@@ -91,7 +91,7 @@ services:
       - _APP_NOTIFICATIONS_TRACKING_SECRET
       - _APP_DOMAIN
       - _APP_CONSOLE_DOMAIN
-      - _APP_CONSOLE_URL_SCHEME=root
+      - _APP_CONSOLE_URL
       - _APP_CONSOLE_TRUSTED_PROJECTS
       - _APP_DOMAIN_TARGET_CNAME
       - _APP_DOMAIN_TARGET_AAAA
@@ -235,9 +235,10 @@ services:
       - _APP_MIGRATIONS_FIREBASE_CLIENT_SECRET
       - _APP_ASSISTANT_OPENAI_API_KEY
       - _APP_CONSOLE_COUNTRIES_DENYLIST
+      - _APP_PWNED_PASSWORDS_DSN
 
   appwrite-console:
-    image: appwrite/new:1.1.96-self-hosted
+    image: appwrite/new:1.1.159-self-hosted
     <<: *x-logging
     restart: unless-stopped
     environment:
@@ -246,7 +247,7 @@ services:
       - VITE_GROWTH_ENDPOINT=https://growth.appwrite.io/v1
 
   appwrite-realtime:
-    image: appwrite/appwrite:2.2.0
+    image: appwrite/appwrite:2.3.0
     entrypoint: realtime
     <<: *x-logging
     restart: unless-stopped
@@ -297,8 +298,58 @@ services:
       - _APP_LOGGING_CONFIG
       - _APP_LOGGING_FORMAT
 
+  appwrite-mqtt:
+    image: appwrite/appwrite:2.3.0
+    entrypoint: mqtt
+    <<: *x-logging
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - php
+        - -r
+        - 'exit(@fsockopen(''127.0.0.1'', 1883) ? 0 : 1);'
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    environment:
+      - _APP_ENV
+      - _APP_WORKER_PER_CORE
+      - _APP_OPTIONS_ABUSE
+      - _APP_OPTIONS_ROUTER_PROTECTION
+      - _APP_REALTIME_TAIL_RATE
+      - _APP_OPENSSL_KEY_V1
+      - _APP_REDIS_HOST
+      - _APP_REDIS_PORT
+      - _APP_REDIS_USER
+      - _APP_REDIS_PASS
+      - _APP_DB_ADAPTER
+      - _APP_DB_HOST
+      - _APP_DB_PORT
+      - _APP_DB_SCHEMA
+      - _APP_DB_USER
+      - _APP_DB_PASS
+      - _APP_DB_ADAPTER_VECTORSDB
+      - _APP_DB_HOST_VECTORSDB
+      - _APP_DB_PORT_VECTORSDB
+      - _APP_DB_SCHEMA_VECTORSDB
+      - _APP_DB_USER_VECTORSDB
+      - _APP_DB_PASS_VECTORSDB
+      - _APP_LOGGING_CONFIG
+      - _APP_LOGGING_FORMAT
+      - _APP_DATABASE_SHARED_TABLES
+      - _APP_MQTT_REPLAY_DEPTH
+      - _APP_MQTT_WS_PORT
+      - _APP_MQTT_MAX_PACKET_SIZE
+
   appwrite-worker:
-    image: appwrite/appwrite:2.2.0
+    image: appwrite/appwrite:2.3.0
     entrypoint: worker
     <<: *x-logging
     restart: unless-stopped
@@ -370,7 +421,7 @@ services:
       - _APP_LOGGING_CONFIG
       - _APP_LOGGING_FORMAT
       - _APP_QUEUE_NAME
-      - _APP_CONSOLE_URL_SCHEME=root
+      - _APP_CONSOLE_URL
       - _APP_CONSOLE_DOMAIN
       - _APP_CONSOLE_TRUSTED_PROJECTS
       - _APP_DOMAIN
@@ -459,7 +510,7 @@ services:
       - _APP_MAINTENANCE_RETENTION_AUDIT_CONSOLE
 
   appwrite-task-scheduler:
-    image: appwrite/appwrite:2.2.0
+    image: appwrite/appwrite:2.3.0
     entrypoint: schedule
     <<: *x-logging
     restart: unless-stopped
@@ -507,7 +558,7 @@ services:
       - _APP_LOGGING_FORMAT
 
   appwrite-task-maintenance:
-    image: appwrite/appwrite:2.2.0
+    image: appwrite/appwrite:2.3.0
     entrypoint: maintenance
     <<: *x-logging
     restart: unless-stopped
@@ -551,7 +602,7 @@ services:
       - _APP_LOGGING_FORMAT
 
   appwrite-task-interval:
-    image: appwrite/appwrite:2.2.0
+    image: appwrite/appwrite:2.3.0
     entrypoint: interval
     <<: *x-logging
     restart: unless-stopped
@@ -593,9 +644,11 @@ services:
     restart: unless-stopped
 
   appwrite-autogravity:
-    image: ghcr.io/appwrite/autogravity:0.0.10
+    image: ghcr.io/appwrite/autogravity:0.0.11
     <<: *x-logging
     restart: unless-stopped
+    environment:
+      - MODEL_BACKEND=focalnet
 
   appwrite-geo:
     image: appwrite/geo:0.3.1
@@ -676,7 +729,7 @@ services:
       start_period: 5s
 
   orchestrator:
-    image: ghcr.io/open-runtimes/orchestrator/orchestrator:2.2.0
+    image: ghcr.io/open-runtimes/orchestrator/orchestrator:2.2.2
     hostname: orchestrator
     <<: *x-logging
     restart: unless-stopped
